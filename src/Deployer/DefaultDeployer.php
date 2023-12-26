@@ -140,7 +140,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->log('<h3>Nothing to execute</>');
     }
 
-    private function doCheckPreviousReleases(): void
+    protected function doCheckPreviousReleases(): void
     {
         $this->log('<h2>Getting the previous releases dirs</>');
         $results = $this->runRemote('ls -r1 {{ deploy_dir }}/releases');
@@ -158,20 +158,20 @@ abstract class DefaultDeployer extends AbstractDeployer
         }
     }
 
-    private function doSymlinkToPreviousRelease(): void
+    protected function doSymlinkToPreviousRelease(): void
     {
         $this->log('<h2>Reverting the current symlink to the previous version</>');
         $this->runRemote('export _previous_release_dirname=$(ls -r1 {{ deploy_dir }}/releases | head -n 2 | tail -n 1) && rm -f {{ deploy_dir }}/current && ln -s {{ deploy_dir }}/releases/$_previous_release_dirname {{ deploy_dir }}/current');
     }
 
-    private function doDeleteLastReleaseDirectory(): void
+    protected function doDeleteLastReleaseDirectory(): void
     {
         // this is needed to avoid rolling back in the future to this version
         $this->log('<h2>Deleting the last release directory</>');
         $this->runRemote('export _last_release_dirname=$(ls -r1 {{ deploy_dir }}/releases | head -n 1) && rm -fr {{ deploy_dir }}/releases/$_last_release_dirname');
     }
 
-    private function initializeServerOptions(): void
+    protected function initializeServerOptions(): void
     {
         $this->log('<h2>Initializing server options</>');
 
@@ -226,7 +226,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         }
     }
 
-    private function createRemoteDirectoryLayout(): void
+    protected function createRemoteDirectoryLayout(): void
     {
         $this->log('<h2>Creating the remote directory layout</>');
         $this->runRemote('mkdir -p {{ deploy_dir }} && mkdir -p {{ deploy_dir }}/releases && mkdir -p {{ deploy_dir }}/shared');
@@ -240,7 +240,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         }
     }
 
-    private function doGetcodeRevision(): string
+    protected function doGetcodeRevision(): string
     {
         $this->log('<h2>Getting the revision ID of the code repository</>');
         $result = $this->runLocal(sprintf('git ls-remote %s %s', $this->getConfig(Option::repositoryUrl), $this->getConfig(Option::repositoryBranch)));
@@ -253,7 +253,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         return $revision;
     }
 
-    private function doUpdateCode(): void
+    protected function doUpdateCode(): void
     {
         $repositoryRevision = $this->doGetcodeRevision();
 
@@ -264,19 +264,19 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote(sprintf('cp -RPp {{ deploy_dir }}/repo/* {{ project_dir }}'));
     }
 
-    private function doCreateCacheDir(): void
+    protected function doCreateCacheDir(): void
     {
         $this->log('<h2>Creating cache directory</>');
         $this->runRemote('if [ -d {{ cache_dir }} ]; then rm -rf {{ cache_dir }}; fi; mkdir -p {{ cache_dir }}');
     }
 
-    private function doCreateLogDir(): void
+    protected function doCreateLogDir(): void
     {
         $this->log('<h2>Creating log directory</>');
         $this->runRemote('if [ -d {{ log_dir }} ] ; then rm -rf {{ log_dir }}; fi; mkdir -p {{ log_dir }}');
     }
 
-    private function doCreateSharedDirs(): void
+    protected function doCreateSharedDirs(): void
     {
         $this->log('<h2>Creating symlinks for shared directories</>');
         foreach ($this->getConfig(Option::sharedDirs) as $sharedDir) {
@@ -286,7 +286,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         }
     }
 
-    private function doCreateSharedFiles(): void
+    protected function doCreateSharedFiles(): void
     {
         $this->log('<h2>Creating symlinks for shared files</>');
         foreach ($this->getConfig(Option::sharedFiles) as $sharedFile) {
@@ -299,7 +299,7 @@ abstract class DefaultDeployer extends AbstractDeployer
 
     // this method was inspired by https://github.com/deployphp/deployer/blob/master/recipe/deploy/writable.php
     // (c) Anton Medvedev <anton@medv.io>
-    private function doSetPermissions(): void
+    protected function doSetPermissions(): void
     {
         $permissionMethod = $this->getConfig(Option::permissionMethod);
         $writableDirs = implode(' ', $this->getConfig(Option::writableDirs));
@@ -333,7 +333,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         throw new InvalidConfigurationException(sprintf('The "%s" permission method is not valid. Select one of the supported methods.', $permissionMethod));
     }
 
-    private function doInstallDependencies(): void
+    protected function doInstallDependencies(): void
     {
         if (true === $this->getConfig(Option::updateRemoteComposerBinary)) {
             $this->log('<h2>Self Updating the Composer binary</>');
@@ -344,7 +344,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote(sprintf('%s install %s', $this->getConfig(Option::remoteComposerBinaryPath), $this->getConfig(Option::composerInstallFlags)));
     }
 
-    private function doInstallWebAssets(): void
+    protected function doInstallWebAssets(): void
     {
         if (true !== $this->getConfig(Option::installWebAssets)) {
             return;
@@ -354,7 +354,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote(sprintf('{{ console_bin }} assets:install {{ web_dir }} --symlink --no-debug --env=%s', $this->getConfig(Option::symfonyEnvironment)));
     }
 
-    private function doDumpAsseticAssets(): void
+    protected function doDumpAsseticAssets(): void
     {
         if (true !== $this->getConfig(Option::dumpAsseticAssets)) {
             return;
@@ -364,7 +364,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote(sprintf('{{ console_bin }} assetic:dump --no-debug --env=%s', $this->getConfig(Option::symfonyEnvironment)));
     }
 
-    private function doWarmupCache(): void
+    protected function doWarmupCache(): void
     {
         if (true !== $this->getConfig(Option::warmupCache)) {
             return;
@@ -375,7 +375,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote('chmod -R g+w {{ cache_dir }}');
     }
 
-    private function doClearControllers(): void
+    protected function doClearControllers(): void
     {
         $this->log('<h2>Clearing controllers</>');
         foreach ($this->getServers()->findByRoles([Server::ROLE_APP]) as $server) {
@@ -393,13 +393,13 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote(sprintf('%s dump-autoload %s', $this->getConfig(Option::remoteComposerBinaryPath), $this->getConfig(Option::composerOptimizeFlags)));
     }
 
-    private function doCreateSymlink(): void
+    protected function doCreateSymlink(): void
     {
         $this->log('<h2>Updating the symlink</>');
         $this->runRemote('rm -f {{ deploy_dir }}/current && ln -s {{ project_dir }} {{ deploy_dir }}/current');
     }
 
-    private function doResetOpCache(): void
+    protected function doResetOpCache(): void
     {
         if (null === $homepageUrl = $this->getConfig(Option::resetOpCacheFor)) {
             return;
@@ -410,7 +410,7 @@ abstract class DefaultDeployer extends AbstractDeployer
         $this->runRemote(sprintf('echo "<?php opcache_reset();" > {{ web_dir }}/%s && wget %s/%s && rm -f {{ web_dir }}/%s', $phpScriptPath, $homepageUrl, $phpScriptPath, $phpScriptPath));
     }
 
-    private function doKeepReleases(): void
+    protected function doKeepReleases(): void
     {
         if (-1 === $this->getConfig(Option::keepReleases)) {
             $this->log('<h3>No releases to delete</>');
